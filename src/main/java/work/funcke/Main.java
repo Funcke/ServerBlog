@@ -17,13 +17,12 @@ import org.glassfish.jersey.jackson.JacksonFeature;
 import org.glassfish.jersey.server.ResourceConfig;
 import org.glassfish.jersey.servlet.ServletContainer;
 import work.funcke.configuration.ApplicationConfiguration;
+import work.funcke.configuration.CDIResourceConfiguration;
 import work.funcke.filter.AuthorizationFilter;
 import work.funcke.rest.ExampleResource;
 
 import javax.servlet.DispatcherType;
-import javax.ws.rs.core.Application;
 import java.util.EnumSet;
-import java.util.ResourceBundle;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
 
@@ -89,7 +88,7 @@ public class Main {
         resourceConfig.register(ExampleResource.class);
         resourceConfig.register(JacksonFeature.class);
         resourceConfig.register(AuthorizationFilter.class);
-        resourceConfig.register(new Binder());
+        resourceConfig.register(new ApplicationResourceBinder(new CDIResourceConfiguration()));
         return resourceConfig;
     }
 }

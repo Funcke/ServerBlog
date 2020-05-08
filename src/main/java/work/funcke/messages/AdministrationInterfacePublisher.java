@@ -13,9 +13,6 @@ public class AdministrationInterfacePublisher {
     public AdministrationInterfacePublisher() throws Exception {
         ConnectionFactory factory = new ConnectionFactory();
         factory.setHost("localhost");
-        //factory.setUri("amqp://ixwqfxak:CzfZYkg_H6Gov7kXv8R9FeWRpUz7Znh6@stingray.rmq.cloudamqp.com/ixwqfxak");
-        //factory.setUsername("ixwqfxak");
-        //factory.setPassword("CzfZYkg_H6Gov7kXv8R9FeWRpUz7Znh6");
         this.channel = factory.newConnection().createChannel();
         this.channel.exchangeDeclare(EXCHANGE_NAME, "topic");
     }

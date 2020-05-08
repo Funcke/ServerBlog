@@ -1,6 +1,6 @@
 package work.funcke.configuration;
 
-import java.util.ResourceBundle;
+import java.util.*;
 
 public abstract class PropertyConfiguration {
     private ResourceBundle resourceBundle;
@@ -27,5 +27,13 @@ public abstract class PropertyConfiguration {
 
     public double getDouble(String key) {
         return Double.parseDouble(getResourceBundle().getString(key));
+    }
+
+    public Set<String> getStringSet(String key) {
+        return new HashSet<>(Arrays.asList(getResourceBundle().getStringArray(key)));
+    }
+
+    public Set<String> keys() {
+        return getResourceBundle().keySet();
     }
 }
