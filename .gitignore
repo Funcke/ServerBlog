@@ -1,0 +1,9 @@
+.gradle/
+.idea/
+build/
+gradle/
+out/
+local-dev.db
+AdministrationApp/node_modules/
+node_modules/
+dist/
