@@ -2,8 +2,16 @@ package work.funcke.data;
 
 import javax.persistence.Persistence;
 import java.util.List;
-import java.util.Set;
 
+/**
+ * Data Access Repository.
+ * This class provides access to underlying database implementation via EntityManager.
+ * It aims to generalize a communication layer providing most of the necessary
+ * manipulation operations.
+ *
+ * @param <T> - Type of the entity
+ * @author Jonas Funcke <jonas@funcke.work>
+ */
 public class Repository<T> {
     private javax.persistence.EntityManagerFactory entityManagerFactory;
     private Class<T> entityType;
@@ -36,6 +44,14 @@ public class Repository<T> {
         this.entityManager.persist(newInstance);
         this.entityManager.getTransaction().commit();
         return this.entityManager.contains(newInstance);
+    }
+
+    public boolean destroy(String id) {
+        this.entityManager.getTransaction().begin();
+        T target = findById(id);
+        this.entityManager.remove(target);
+        this.entityManager.getTransaction().commit();
+        return this.entityManager.contains(target);
     }
 
     public List<T> findBy(String property, String value) {

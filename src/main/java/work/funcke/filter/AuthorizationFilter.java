@@ -5,22 +5,20 @@ import java.util.*;
 
 import javax.annotation.security.DenyAll;
 import javax.annotation.security.PermitAll;
-import javax.annotation.security.RolesAllowed;
+import javax.ws.rs.ForbiddenException;
 import javax.ws.rs.container.ContainerRequestContext;
+import javax.ws.rs.container.ContainerRequestFilter;
 import javax.ws.rs.container.ResourceInfo;
 import javax.ws.rs.core.Context;
-import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.ext.Provider;
 
-import org.glassfish.jersey.internal.util.Base64;
-
 /**
  * This filter verify the access permissions for a user
- * based on username and passowrd provided in request
+ * based on username and password provided in request
  */
 @Provider
-public class AuthorizationFilter implements javax.ws.rs.container.ContainerRequestFilter
+public class AuthorizationFilter implements ContainerRequestFilter
 {
 
     @Context
@@ -43,36 +41,27 @@ public class AuthorizationFilter implements javax.ws.rs.container.ContainerReque
     {
         Method method = resourceInfo.getResourceMethod();
 
-        //Access allowed for all
-        if( ! method.isAnnotationPresent(PermitAll.class))
-            return;
         //Access denied for all
         if(method.isAnnotationPresent(DenyAll.class))
-            deny(requestContext);
+            deny();
 
         if(method.isAnnotationPresent(Authorization.class))
         {
-            Authorization rolesAnnotation = method.getAnnotation(Authorization.class);
-            Set<String> accessRights = new HashSet<>(Arrays.asList(rolesAnnotation.value()));
-
-            //Get request headers
-            final MultivaluedMap<String, String> headers = requestContext.getHeaders();
-
-            //Fetch authorization header
-            final List<String> authorization = headers.get(AUTHORIZATION_HEADER);
-
+            String authorization = requestContext.getHeaderString(AUTHORIZATION_HEADER);
             //If no authorization information present; block access
             if(authorization == null || authorization.isEmpty())
             {
-                deny(requestContext);
-                return;
+                deny();
             }
 
+            Authorization rolesAnnotation = method.getAnnotation(Authorization.class);
+            Set<String> accessRights = new HashSet<>(Arrays.asList(rolesAnnotation.value()));
+
             //Get encoded username and password
-            final String key = authorization.get(0).replaceFirst(AUTHENTICATION_SCHEME + " ", "");
+            final String key = authorization.replaceFirst(AUTHENTICATION_SCHEME + " ", "");
 
             if( ! authorize(key, accessRights))
-                deny(requestContext);
+                deny();
         }
     }
 
@@ -87,8 +76,7 @@ public class AuthorizationFilter implements javax.ws.rs.container.ContainerReque
         return isAllowed;
     }
 
-    private void deny(ContainerRequestContext requestContext) {
-        requestContext.abortWith(Response.status(Response.Status.UNAUTHORIZED)
-                .entity("You cannot access this resource").build());
+    private void deny() {
+        throw new ForbiddenException("Resource Forbidden");
     }
 }

@@ -22,6 +22,7 @@ import work.funcke.filter.AuthorizationFilter;
 import work.funcke.rest.ExampleResource;
 
 import javax.servlet.DispatcherType;
+import javax.ws.rs.core.Application;
 import java.util.EnumSet;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
@@ -37,16 +38,25 @@ public class Main {
      * @throws Exception - thrown if errors occur during startup.
      */
     public static void main(String[] args) throws Exception {
-        ApplicationConfiguration appConfig = new ApplicationConfiguration();
-        BlockingQueue<Runnable> threadPoolQueue = new BlockingArrayQueue<>(20, 2, 80);
-        QueuedThreadPool threadPool = new QueuedThreadPool(20, 2, (int) TimeUnit.MINUTES.toMillis(1), threadPoolQueue);        // default idle time as defined in the QueuedThreadPool
-        threadPool.setName("jetty-test-server");
+        ApplicationConfiguration appConfig = ApplicationConfiguration.getInstance();
+        BlockingQueue<Runnable> threadPoolQueue = new BlockingArrayQueue<>(
+                appConfig.getInteger(ApplicationConfiguration.JOB_QUEUE_CAPACITY),
+                appConfig.getInteger(ApplicationConfiguration.JOB_QUEUE_GROW),
+                appConfig.getInteger(ApplicationConfiguration.JOB_QUEUE_MAX_CAPACITY)
+        );
+        QueuedThreadPool threadPool = new QueuedThreadPool(
+                appConfig.getInteger(ApplicationConfiguration.THREAD_POOL_MAX_SIZE),
+                appConfig.getInteger(ApplicationConfiguration.THREAD_POOL_MIN_SIZE),
+                appConfig.getInteger(ApplicationConfiguration.THREAD_POOL_IDLE),
+                threadPoolQueue
+        );
+        threadPool.setName(appConfig.getString(ApplicationConfiguration.THREAD_POOL_NAME));
         threadPool.setDaemon(true);
 
         Server server = new Server(threadPool);
 
         ServerConnector connector = new ServerConnector(server);
-        connector.setPort(appConfig.getInteger("http-port"));
+        connector.setPort(appConfig.getInteger(ApplicationConfiguration.HTTP_PORT));
         server.setConnectors(new Connector[]{connector});
 
         /**
@@ -62,7 +72,7 @@ public class Main {
         resourceHandler.setResourceBase(Main.class.getClassLoader().getResource("FrontendResources").toString());
         resourceHandler.setWelcomeFiles(new String[]{"index.html"});
 
-        servletContextHandler.addFilter(registerCorsFilter(), "/*", EnumSet.of(DispatcherType.REQUEST));
+        servletContextHandler.addFilter(corsFilter(), "/*", EnumSet.of(DispatcherType.REQUEST));
 
         final ServletHolder servletHolder = new ServletHolder(new ServletContainer(registerResources()));
         servletContextHandler.addServlet(servletHolder, "/*");
@@ -75,7 +85,11 @@ public class Main {
         server.join();
     }
 
-    private static FilterHolder registerCorsFilter() {
+    /**
+     * CORS filter configuration
+     * @return FilterHolder - Finished implementation for CORS-Filter
+     */
+    private static FilterHolder corsFilter() {
         FilterHolder filterHolder = new FilterHolder(CrossOriginFilter.class);
         filterHolder.setInitParameter("allowedOrigins", "*");
         filterHolder.setInitParameter("allowedMethods", "GET, POST, PUT, DELETE, OPTIONS");
@@ -83,6 +97,13 @@ public class Main {
         return filterHolder;
     }
 
+    /**
+     * Configures registry for REST Resources
+     *
+     * TODO: Make it easier to configure
+     *
+     * @return ResourceConfig - Finished Resource Configuration
+     */
     private static ResourceConfig registerResources() {
         ResourceConfig resourceConfig = new ResourceConfig();
         resourceConfig.register(ExampleResource.class);
